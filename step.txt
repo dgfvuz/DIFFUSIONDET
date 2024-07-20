@@ -4,5 +4,7 @@
 4. 前往https://github.com/facebookresearch/detectron2/blob/main/INSTALL.md#installation 安装detectron2,推荐使用Source来build
 5. python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
 6. 数据集处理脚本已添加,为script.py 详情见注释
-7. 更改Pascalvoc.py文件内容 CLASS_NAMES = ('Mouse_bite', 'Open_circuit', 'Short', 'Spur', 'Spurious_copper')
+7. 更改Pascalvoc.py文件内容
+    (运行前不改,因为这个文件路径需要你的运行报错信息才能得到,这个是属于detectron2库的问题,需要你去改他的源代码):
+    CLASS_NAMES = ('missing_hole','mouse_bite', 'open_circuit', 'short', 'spur', 'spurious_copper')
 8. pip install timm

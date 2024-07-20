@@ -221,12 +221,21 @@ def convert_source_to_voc():
                 image_path = os.path.join(img_folder, annotation.replace('.xml', '.jpg'))
                 im = cv2.imread(image_path)
                 rotation_path = os.path.join(rotation_folder, annotation.replace('.xml', '.jpg'))
+                rotation_im = cv2.imread(rotation_path)
                 rotation_angle = rotation_dict[annotation.replace('.xml', '')]
 
                 M = rotate_bound_white_bg(im, rotation_angle)
                 # 读取xml文件
                 tree = ET.parse(annotation_path)
                 root = tree.getroot()
+                # 更改folder
+                folder = root.find('folder')
+                folder.text = 'JPEGImages'
+                # 更改path
+                path = root.find('path')
+                path.text = os.path.join(output_folder + '/JPEGImages', annotation.replace('.xml', '.jpg'))
+                tree.write(os.path.join(output_folder + '/Annotations', annotation))
+                # 更改object
                 for obj in root.findall('object'):
                     bndbox = obj.find('bndbox')
                     xmin = int(bndbox.find('xmin').text)
@@ -246,10 +255,17 @@ def convert_source_to_voc():
                     bndbox.find('ymin').text = str(ymin)
                     bndbox.find('xmax').text = str(xmax)
                     bndbox.find('ymax').text = str(ymax)
+                # 更改文件名
+                root.find('filename').text = annotation.replace('.xml', f'_{str(rotation_angle)}.jpg')
+                # 更改path
+                path = root.find('path')
+                path.text = os.path.join(output_folder + '/JPEGImages', annotation.replace('.xml', f'_{str(rotation_angle)}.jpg'))
+                # 更改shape
+                size = root.find('size')
+                size.find('width').text = str(rotation_im.shape[1])
+                size.find('height').text = str(rotation_im.shape[0])
                 # 保存xml文件
                 tree.write(os.path.join(output_folder + '/Annotations', annotation.replace('.xml', f'_{str(rotation_angle)}.xml')))
-                # 复制annotation文件到VOC2007/Annotations
-                shutil.copy(annotation_path, os.path.join(output_folder + '/Annotations', annotation))
                 # 复制图片到VOC2007/JPEGImages
                 shutil.copy(image_path, os.path.join(output_folder + '/JPEGImages', annotation.replace('.xml', '.jpg')))
                 # 复制旋转后的图片到VOC2007/JPEGImages
@@ -311,5 +327,15 @@ def draw_bounding_box():
     
 
 if __name__ == "__main__":
+    # -datasets
+    #   - VOC2007
+    #       - Annotations
+    #       - ImageSets
+    #           - Main
+    #               - test.txt
+    #               - train.txt
+    #               - trainval.txt
+    #               - val.txt
+    #       - JPEGImages
     # convert_source_to_voc()
     draw_bounding_box()
