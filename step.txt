@@ -8,3 +8,27 @@
     (运行前不改,因为这个文件路径需要你的运行报错信息才能得到,这个是属于detectron2库的问题,需要你去改他的源代码):
     CLASS_NAMES = ('missing_hole','mouse_bite', 'open_circuit', 'short', 'spur', 'spurious_copper')
 8. pip install timm
+9. 更改configs/Base-DiffusionDet.yaml 的
+SOLVER:
+  IMS_PER_BATCH: 1 
+不一定是1 也可以是其他较小的值, 如果过大会报错:显存分配不足
+10. 更改configs/diffdet.coco.res101.yaml的
+  DiffusionDet:
+    NUM_PROPOSALS: 500
+    NUM_CLASSES: 6
+DATASETS:
+  TRAIN: ("voc_2007_train",)
+  TEST:  ("voc_2007_val",)
+SOLVER:
+  STEPS: (7000, 8400)
+  MAX_ITER: 9000
+
+11. 下载两个模型
+
+mkdir models
+cd models
+# ResNet-101
+wget https://github.com/ShoufaChen/DiffusionDet/releases/download/v0.1/torchvision-R-101.pkl
+
+# Swin-Base
+wget https://github.com/ShoufaChen/DiffusionDet/releases/download/v0.1/swin_base_patch4_window7_224_22k.pkl
