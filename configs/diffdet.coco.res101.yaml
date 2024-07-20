@@ -6,13 +6,13 @@ MODEL:
     STRIDE_IN_1X1: False
   DiffusionDet:
     NUM_PROPOSALS: 500
-    NUM_CLASSES: 80
+    NUM_CLASSES: 5
 DATASETS:
-  TRAIN: ("coco_2017_train",)
-  TEST:  ("coco_2017_val",)
+  TRAIN: ("voc_2007_train",)
+  TEST:  ("voc_2007_val",)
 SOLVER:
   STEPS: (350000, 420000)
-  MAX_ITER: 450000
+  MAX_ITER: 45000
 INPUT:
   CROP:
     ENABLED: True

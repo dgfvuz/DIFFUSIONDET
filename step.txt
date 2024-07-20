@@ -1,0 +1,7 @@
+1. 创建python环境
+2. 控制台pip install torchvision
+3. 控制台pip install opencv-python
+4. 前往https://github.com/facebookresearch/detectron2/blob/main/INSTALL.md#installation 安装detectron2,推荐使用Source来build
+5. python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
+6. 数据集处理脚本已添加,为script.py 详情见注释
+7. 更改Pascalvoc.py文件内容 CLASS_NAMES = ('Mouse_bite', 'Open_circuit', 'Short', 'Spur', 'Spurious_copper')
