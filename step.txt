@@ -5,3 +5,4 @@
 5. python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
 6. 数据集处理脚本已添加,为script.py 详情见注释
 7. 更改Pascalvoc.py文件内容 CLASS_NAMES = ('Mouse_bite', 'Open_circuit', 'Short', 'Spur', 'Spurious_copper')
+8. pip install timm

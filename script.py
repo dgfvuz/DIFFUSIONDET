@@ -15,6 +15,9 @@ import random
 import xml.etree.ElementTree as ET
 from xml.dom.minidom import parseString
 from PIL import Image
+import shutil
+import cv2
+import numpy as np
 
 # 文件夹路径, 这是源文件夹
 # 源图片文件夹格式为：./datasets/PCB/{class}_Img   class为变量,是下方classes列表中的元素
@@ -161,9 +164,152 @@ def convert_to_voc():
         for img in val_list:
             f.write(img + '\n')
 
+def rotate_bound_white_bg(image, angle):
+    # grab the dimensions of the image and then determine the
+    # center
+    (h, w) = image.shape[:2]
+    (cX, cY) = (w // 2, h // 2)
+
+    # grab the rotation matrix (applying the negative of the
+    # angle to rotate clockwise), then grab the sine and cosine
+    # (i.e., the rotation components of the matrix)
+
+    M = cv2.getRotationMatrix2D((cX, cY), -angle, 1.0)
+    cos = np.abs(M[0, 0])
+    sin = np.abs(M[0, 1])
+
+    # compute the new bounding dimensions of the image
+    nW = int((h * sin) + (w * cos))
+    nH = int((h * cos) + (w * sin))
+
+    # adjust the rotation matrix to take into account translation
+    M[0, 2] += (nW / 2) - cX
+    M[1, 2] += (nH / 2) - cY
+
+    # perform the actual rotation and return the image
+
+    return M
 
 
+
+
+def convert_source_to_voc():
+    input_folder = './datasets/PCB_DATASET'
+    class_list = ["Missing_hole","Mouse_bite", "Open_circuit", "Short", "Spur", "Spurious_copper"]
+    output_folder = './datasets/VOC2007'
+    train_list = []
+    test_list = []
+    val_list = []
+    trainval_list = []
+    os.makedirs(output_folder, exist_ok=True)
+    for PCB_class in class_list:
+        annotation_folder = os.path.join(f"{input_folder}/Annotations", PCB_class)
+        img_folder = os.path.join(f"{input_folder}/images", PCB_class)
+        rotation_folder = os.path.join(f"{input_folder}/rotation", f"{PCB_class}_rotation")
+        rotation_text_file = os.path.join(f"{input_folder}/rotation", f"{PCB_class}_angles.txt")
+        rotation_dict = {}
+        with open(rotation_text_file, 'r') as f:
+            lines = f.readlines()
+        for line in lines:
+            parts = line.strip().split()
+            rotation_dict[parts[0]] = int(parts[1])
+        annotation_list = os.listdir(annotation_folder)
+        for annotation in annotation_list:
+            if annotation.endswith('.xml'):
+                # 读取图片
+                annotation_path = os.path.join(annotation_folder, annotation)
+                image_path = os.path.join(img_folder, annotation.replace('.xml', '.jpg'))
+                im = cv2.imread(image_path)
+                rotation_path = os.path.join(rotation_folder, annotation.replace('.xml', '.jpg'))
+                rotation_angle = rotation_dict[annotation.replace('.xml', '')]
+
+                M = rotate_bound_white_bg(im, rotation_angle)
+                # 读取xml文件
+                tree = ET.parse(annotation_path)
+                root = tree.getroot()
+                for obj in root.findall('object'):
+                    bndbox = obj.find('bndbox')
+                    xmin = int(bndbox.find('xmin').text)
+                    ymin = int(bndbox.find('ymin').text)
+                    xmax = int(bndbox.find('xmax').text)
+                    ymax = int(bndbox.find('ymax').text)
+                    # 旋转坐标
+                    pts = np.array([[xmin, ymin], [xmax, ymin], [xmax, ymax], [xmin, ymax]], dtype='float32')
+                    # 旋转后的坐标
+                    rotated_pts = cv2.transform(np.array([pts]), M)[0]
+                    # 旋转后的坐标
+                    xmin = int(min(rotated_pts[:, 0]))
+                    ymin = int(min(rotated_pts[:, 1]))
+                    xmax = int(max(rotated_pts[:, 0]))
+                    ymax = int(max(rotated_pts[:, 1]))
+                    bndbox.find('xmin').text = str(xmin)
+                    bndbox.find('ymin').text = str(ymin)
+                    bndbox.find('xmax').text = str(xmax)
+                    bndbox.find('ymax').text = str(ymax)
+                # 保存xml文件
+                tree.write(os.path.join(output_folder + '/Annotations', annotation.replace('.xml', f'_{str(rotation_angle)}.xml')))
+                # 复制annotation文件到VOC2007/Annotations
+                shutil.copy(annotation_path, os.path.join(output_folder + '/Annotations', annotation))
+                # 复制图片到VOC2007/JPEGImages
+                shutil.copy(image_path, os.path.join(output_folder + '/JPEGImages', annotation.replace('.xml', '.jpg')))
+                # 复制旋转后的图片到VOC2007/JPEGImages
+                shutil.copy(rotation_path, os.path.join(output_folder + '/JPEGImages', annotation.replace('.xml', f'_{str(rotation_angle)}.jpg')))
+                # 以上述概率确定其在哪个集合内
+                # 生成一个小于10,大于等于0的随机数
+                r = random.randint(0, 9)
+                if r == 0:
+                    test_list.append(annotation.replace('.xml', ''))
+                    test_list.append(annotation.replace('.xml', f'_{str(rotation_angle)}'))
+                elif r == 1:
+                    trainval_list.append(annotation.replace('.xml', ''))
+                    trainval_list.append(annotation.replace('.xml', f'_{str(rotation_angle)}'))
+                elif r == 2:
+                    val_list.append(annotation.replace('.xml', ''))
+                    val_list.append(annotation.replace('.xml', f'_{str(rotation_angle)}'))
+                else:
+                    train_list.append(annotation.replace('.xml', ''))
+                    train_list.append(annotation.replace('.xml', f'_{str(rotation_angle)}'))
+    # 保存
+    with open(os.path.join(output_folder, 'ImageSets/Main/test.txt'), 'w') as f:
+        for img in test_list:
+            f.write(img + '\n')
+    with open(os.path.join(output_folder, 'ImageSets/Main/train.txt'), 'w') as f:
+        for img in train_list:
+            f.write(img + '\n')
+    with open(os.path.join(output_folder, 'ImageSets/Main/trainval.txt'), 'w') as f:
+        for img in trainval_list:
+            f.write(img + '\n')
+    with open(os.path.join(output_folder, 'ImageSets/Main/val.txt'), 'w') as f:
+        for img in val_list:
+            f.write(img + '\n')
+
+
+def draw_bounding_box():
+    input_folder = './datasets/VOC2007'
+    output_folder = './datasets/visual'
+    os.makedirs(output_folder, exist_ok=True)
+    annotation_folder = os.path.join(input_folder, 'Annotations')
+    img_folder = os.path.join(input_folder, 'JPEGImages')
+    annotation_list = os.listdir(annotation_folder)
+    for annotation in annotation_list:
+        if annotation.endswith('.xml'):
+            # 读取图片
+            annotation_path = os.path.join(annotation_folder, annotation)
+            image_path = os.path.join(img_folder, annotation.replace('.xml', '.jpg'))
+            im = cv2.imread(image_path)
+            # 读取xml文件
+            tree = ET.parse(annotation_path)
+            root = tree.getroot()
+            for obj in root.findall('object'):
+                bndbox = obj.find('bndbox')
+                xmin = int(bndbox.find('xmin').text)
+                ymin = int(bndbox.find('ymin').text)
+                xmax = int(bndbox.find('xmax').text)
+                ymax = int(bndbox.find('ymax').text)
+                cv2.rectangle(im, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
+            cv2.imwrite(os.path.join(output_folder, annotation.replace('.xml', '.jpg')), im)
     
 
 if __name__ == "__main__":
-    convert_to_voc()
+    # convert_source_to_voc()
+    draw_bounding_box()
