@@ -207,6 +207,9 @@ def convert_source_to_voc():
         img_folder = os.path.join(f"{input_folder}/images", PCB_class)
         rotation_folder = os.path.join(f"{input_folder}/rotation", f"{PCB_class}_rotation")
         rotation_text_file = os.path.join(f"{input_folder}/rotation", f"{PCB_class}_angles.txt")
+        os.makedirs(os.path.join(output_folder, 'Annotations'), exist_ok=True)
+        os.makedirs(os.path.join(output_folder, 'JPEGImages'), exist_ok=True)
+        os.makedirs(os.path.join(output_folder, 'ImageSets/Main'), exist_ok=True)
         rotation_dict = {}
         with open(rotation_text_file, 'r') as f:
             lines = f.readlines()

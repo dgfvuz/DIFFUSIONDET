@@ -32,3 +32,31 @@ wget https://github.com/ShoufaChen/DiffusionDet/releases/download/v0.1/torchvisi
 
 # Swin-Base
 wget https://github.com/ShoufaChen/DiffusionDet/releases/download/v0.1/swin_base_patch4_window7_224_22k.pkl
+
+12. 控制台启动
+python train_net.py --num-gpus 1 --config-file configs/diffdet.coco.res101.yaml
+控制台评估
+
+python train_net.py --num-gpus 1 --config-file configs/diffdet.coco.res101.yaml --eval-only MODEL.WEIGHTS path/to/model.pth
+
+ps: 可以看一下GETTING_STARTED.md, 帮助你理解一下各个步骤
+    关于处理后的训练集,可以找我要,也可以去下载原数据集然后解压到datasets路径下,然后用script.py内的脚本来生成
+    原数据集的路径结构为
+    -datasets 
+      -PCB_DATASET
+        -Annotations
+        -images
+        -PCB_USED
+        -rotation 
+        -rotate.py 
+    生成的数据集的路径结构为
+    -datasets
+       - VOC2007
+           - Annotations
+           - ImageSets
+               - Main
+                   - test.txt
+                   - train.txt
+                   - trainval.txt
+                   - val.txt
+           - JPEGImages

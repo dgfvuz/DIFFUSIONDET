@@ -11,8 +11,8 @@ DATASETS:
   TRAIN: ("voc_2007_train",)
   TEST:  ("voc_2007_val",)
 SOLVER:
-  STEPS: (7000, 8400)
-  MAX_ITER: 9000
+  STEPS: (35000, 42000)
+  MAX_ITER: 45000
 INPUT:
   CROP:
     ENABLED: True

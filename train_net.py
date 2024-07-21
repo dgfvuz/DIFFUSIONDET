@@ -28,7 +28,7 @@ from detectron2.config import get_cfg
 from detectron2.data import build_detection_train_loader
 from detectron2.engine import DefaultTrainer, default_argument_parser, default_setup, launch, create_ddp_model, \
     AMPTrainer, SimpleTrainer, hooks
-from detectron2.evaluation import COCOEvaluator, LVISEvaluator, verify_results
+from detectron2.evaluation import COCOEvaluator, LVISEvaluator, verify_results, PascalVOCDetectionEvaluator
 from detectron2.solver.build import maybe_add_gradient_clipping
 from detectron2.modeling import build_model
 
