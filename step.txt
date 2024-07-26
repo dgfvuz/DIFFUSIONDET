@@ -75,4 +75,7 @@ ps: 可以看一下GETTING_STARTED.md, 帮助你理解一下各个步骤
     --config-file 是模型的配置文件地址,这里由于是使用configs/diffdet.coco.res101.yaml训练的,那么只能是它
 
 14. 评估过程, 使用统一的接口评估
-  在script.py文件中第380行定义的函数，输入参数为image, 格式见注释, 输出参数为json格式的字符串, 格式见注释
+  1. 首先更改 configs/diffdet.coco.res101.yaml 的内容：如下所示: 主要是改一下模型路径
+      # WEIGHTS: "models/torchvision-R-101.pkl"
+      WEIGHTS: output/model_final.pth
+  2. 在script.py文件中第380行定义的函数，输入参数为image, 格式见注释, 输出参数为json格式的字符串, 格式见注释
