@@ -1,6 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 import argparse
 import glob
+import json
 import multiprocessing as mp
 import numpy as np
 import os
@@ -48,6 +49,10 @@ def get_parser():
         default="configs/quick_schedules/mask_rcnn_R_50_FPN_inference_acc_test.yaml",
         metavar="FILE",
         help="path to config file",
+    )
+    parser.add_argument(
+        "--output-result",
+        help="A file or directory to save output result. ",
     )
     parser.add_argument("--webcam", action="store_true", help="Take inputs from webcam.")
     parser.add_argument("--video-input", help="Path to video file.")
@@ -138,6 +143,25 @@ if __name__ == "__main__":
                 cv2.imshow(WINDOW_NAME, visualized_output.get_image()[:, :, ::-1])
                 if cv2.waitKey(0) == 27:
                     break  # esc to quit
+
+            if args.output_result:
+                data = {}
+                CLASS_NAMES = ('missing_hole','mouse_bite', 'open_circuit', 'short', 'spur', 'spurious_copper')
+                data = {
+                    "detection_classes": [CLASS_NAMES[i] for i in predictions["instances"].pred_classes.tolist()],
+                    "detection_boxes": [
+                        # [x1, y1, x2, y2] for x1, y1, x2, y2 in predictions["instances"].pred_boxes.tensor.tolist()
+                        [int(x1), int(y1), int(x2), int(y2)] for x1, y1, x2, y2 in predictions["instances"].pred_boxes.tensor.tolist()
+                    ],
+                    "detection_scores": [
+                        score for score in predictions["instances"].scores.tolist()
+                    ]
+                }
+                if os.path.isdir(args.output_result):
+                    assert os.path.isdir(args.output_result), args.output_result
+                    out_filename = os.path.join(args.output_result, os.path.basename(path).replace('.jpg', '.json'))
+                with open(out_filename, 'w') as f:
+                    f.write(json.dumps(data, indent=4))
     elif args.webcam:
         assert args.input is None, "Cannot have both --input and --webcam!"
         assert args.output is None, "output not yet supported with --webcam!"

@@ -18,6 +18,32 @@ from PIL import Image
 import shutil
 import cv2
 import numpy as np
+import multiprocessing as mp
+import json
+import multiprocessing as mp
+import numpy as np
+import os
+import time
+import cv2
+from detectron2.config import get_cfg
+from diffusiondet.predictor import VisualizationDemo
+from diffusiondet import  add_diffusiondet_config
+from diffusiondet.util.model_ema import add_model_ema_configs
+
+# 设置config
+def setup_cfg():
+    cfg = get_cfg()
+    add_diffusiondet_config(cfg)
+    add_model_ema_configs(cfg)
+    # 添加config文件
+    cfg.merge_from_file("configs/diffdet.coco.res101.yaml")
+    cfg.merge_from_list([])
+    # 设置阈值
+    cfg.MODEL.RETINANET.SCORE_THRESH_TEST = 0.5
+    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5
+    cfg.MODEL.PANOPTIC_FPN.COMBINE.INSTANCES_CONFIDENCE_THRESH = 0.5
+    cfg.freeze()
+    return cfg
 
 # 文件夹路径, 这是源文件夹
 # 源图片文件夹格式为：./datasets/PCB/{class}_Img   class为变量,是下方classes列表中的元素
@@ -328,6 +354,55 @@ def draw_bounding_box():
                 cv2.rectangle(im, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
             cv2.imwrite(os.path.join(output_folder, annotation.replace('.xml', '.jpg')), im)
     
+# from detectron2.data.detection_utils import read_image 这是read_image的导入方式
+# def read_image(file_name, format=None):
+#     """
+#     Read an image into the given format.
+#     Will apply rotation and flipping if the image has such exif information.
+
+#     Args:
+#         file_name (str): image file path
+#         format (str): one of the supported image modes in PIL, or "BGR" or "YUV-BT.601".
+
+#     Returns:
+#         image (np.ndarray):
+#             an HWC image in the given format, which is 0-255, uint8 for
+#             supported image modes in PIL or "BGR"; float (0-1 for Y) for YUV-BT.601.
+#     """
+#     with PathManager.open(file_name, "rb") as f:
+#         image = Image.open(f)
+
+#         # work around this bug: https://github.com/python-pillow/Pillow/issues/3973
+#         image = _apply_exif_orientation(image)
+#         return convert_PIL_to_numpy(image, format)
+
+# image 应该由上述函数返回,format为"BGR"(提供一个更改函数输入参数为path的方法)
+def get_JSON_result(image):
+    # 设置并行处理(多进程)
+    mp.set_start_method("spawn", force=True)
+    # 设置config文件
+    cfg = setup_cfg()
+    # 创建demo模型
+    demo = VisualizationDemo(cfg)
+    # 运行模型,得到结果, 第二个参数是可视化结果(一张图片,即我发在群里的那张图片)
+    predictions, _ = demo.run_on_image(image)
+    data = {}
+    CLASS_NAMES = ('missing_hole','mouse_bite', 'open_circuit', 'short', 'spur', 'spurious_copper')
+    # 转化为json格式
+    data = {
+        "detection_classes": [CLASS_NAMES[i] for i in predictions["instances"].pred_classes.tolist()],
+        "detection_boxes": [
+            # [x1, y1, x2, y2] for x1, y1, x2, y2 in predictions["instances"].pred_boxes.tensor.tolist()
+            [int(x1), int(y1), int(x2), int(y2)] for x1, y1, x2, y2 in predictions["instances"].pred_boxes.tensor.tolist()
+        ],
+        "detection_scores": [
+            score for score in predictions["instances"].scores.tolist()
+        ]
+    }
+    # 返回json格式的字符串 如需返回字典,则return data
+    return json.dumps(data, indent=4)
+
+from detectron2.data.detection_utils import read_image
 
 if __name__ == "__main__":
     # -datasets
@@ -341,4 +416,7 @@ if __name__ == "__main__":
     #               - val.txt
     #       - JPEGImages
     # convert_source_to_voc()
-    draw_bounding_box()
+    # draw_bounding_box()
+    
+    # 返回的score是置信度,越高越可信, 但是每次都不一样, 可能和扩散模型的随机性有关
+    print(get_JSON_result(read_image('./datasets/VOC2007/JPEGImages/01_missing_hole_01_4.jpg', format="BGR")))
